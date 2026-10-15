@@ -384,7 +384,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ['3.14t', '3.15t']
+        python: ['3.14t', '3.15t', '3.15']
         platform:
           - runner: ubuntu-22.04
             artifact: wheels-linux-x86_64
@@ -395,6 +395,9 @@ jobs:
           - runner: windows-latest
             artifact: wheels-windows-x64
             architecture: x64
+          - runner: windows-latest
+            artifact: wheels-windows-x86
+            architecture: x86
           - runner: windows-11-arm
             artifact: wheels-windows-aarch64
             architecture: arm64

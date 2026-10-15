@@ -1,0 +1,125 @@
+name: Validate additional native wheel cases
+
+on:
+  push:
+    branches:
+      - ci/validate-abi-coverage-20261015
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  wheel-tests:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.15']
+        platform:
+          - runner: ubuntu-22.04
+            artifact: wheels-linux-x86_64
+            architecture: x64
+          - runner: ubuntu-22.04-arm
+            artifact: wheels-linux-aarch64
+            architecture: arm64
+          - runner: windows-latest
+            artifact: wheels-windows-x64
+            architecture: x64
+          - runner: windows-latest
+            artifact: wheels-windows-x86
+            architecture: x86
+          - runner: windows-11-arm
+            artifact: wheels-windows-aarch64
+            architecture: arm64
+          - runner: macos-15-intel
+            artifact: wheels-macos-x86_64
+            architecture: x64
+          - runner: macos-latest
+            artifact: wheels-macos-aarch64
+            architecture: arm64
+        include:
+          - python: '3.14t'
+            platform:
+              runner: windows-latest
+              artifact: wheels-windows-x86
+              architecture: x86
+          - python: '3.15t'
+            platform:
+              runner: windows-latest
+              artifact: wheels-windows-x86
+              architecture: x86
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: fa8c19d5b2e58a4e4cc4200e82dd2e3a02e226ae
+          persist-credentials: false
+      - name: Verify source run provenance
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/shaan-forks/primp/actions/runs/38743330633 --jq .head_sha)" = dc8da7e5d06c59340cccaee18f746cbfb6f30e57
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+          architecture: ${{ matrix.platform.architecture }}
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: ${{ matrix.platform.artifact }}
+          path: dist
+          run-id: 38743330633
+          github-token: ${{ github.token }}
+      - name: Test exact ABI wheel with the selected interpreter
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv "$RUNNER_TEMP/primp-ordinary"
+          if [ "$RUNNER_OS" = Windows ]; then
+            source "$RUNNER_TEMP/primp-ordinary/Scripts/activate"
+          else
+            source "$RUNNER_TEMP/primp-ordinary/bin/activate"
+          fi
+          python - <<'PYTHON'
+          from pathlib import Path
+          import subprocess
+          import sys
+          import sysconfig
+          import zipfile
+          selected = "${{ matrix.python }}"
+          assert sys.version_info[:2] == tuple(map(int, selected.rstrip("t").split(".")))
+          assert bool(sysconfig.get_config_var("Py_GIL_DISABLED")) == selected.endswith("t")
+          tag = "cp314-cp314t" if selected == "3.14t" else "cp315-abi3.abi3t"
+          wheels = list(Path("dist").glob(f"primp-*-{tag}-*.whl"))
+          assert len(wheels) == 1, wheels
+          with zipfile.ZipFile(wheels[0]) as archive:
+              metadata = [name for name in archive.namelist() if name.endswith(".dist-info/WHEEL")]
+              assert len(metadata) == 1, metadata
+              text = archive.read(metadata[0]).decode()
+              if selected == "3.14t":
+                  assert "Tag: cp314-cp314t-" in text, text
+              else:
+                  assert "Tag: cp315-abi3-" in text and "Tag: cp315-abi3t-" in text, text
+          print(wheels[0], flush=True)
+          subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-deps", str(wheels[0])])
+          PYTHON
+          python -m pip install pytest==9.1.1 pytest-asyncio==1.4.0 certifi==2026.7.22
+          mkdir "$RUNNER_TEMP/primp-tests"
+          cp -R crates/primp-python/tests "$RUNNER_TEMP/primp-tests/tests"
+          cp crates/primp-python/pyproject.toml "$RUNNER_TEMP/primp-tests/pyproject.toml"
+          cd "$RUNNER_TEMP/primp-tests"
+          python - <<'PYTHON'
+          from pathlib import Path
+          import sys
+          import sysconfig
+          import primp
+          print(sys.version)
+          print(primp.__file__)
+          assert Path(primp.__file__).is_relative_to(sys.prefix)
+          free_threaded = "${{ matrix.python }}".endswith("t")
+          assert bool(sysconfig.get_config_var("Py_GIL_DISABLED")) == free_threaded
+          assert sys._is_gil_enabled() != free_threaded
+          PYTHON
+          python -m pip freeze
+          python -m pytest -ra tests

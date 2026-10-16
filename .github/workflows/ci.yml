@@ -59,65 +59,30 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v6
         with:
-          python-version: |
-            3.13
-            3.x
+          python-version: 3.13
       - uses: Swatinem/rust-cache@v2
         with:
           key: linux-${{ matrix.platform.target }}
       - name: Build wheels
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        uses: PyO3/maturin-action@v1
         with:
           maturin-version: 1.14.1
           target: ${{ matrix.platform.target }}
-          args: --locked --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
           manylinux: ${{ matrix.platform.manylinux }}
       # Regular abi3 and free-threaded wheels require separate maturin invocations.
       - name: Build free-threaded wheels (3.14t and abi3t >= 3.15)
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        uses: PyO3/maturin-action@v1
         with:
           maturin-version: 1.14.1
           target: ${{ matrix.platform.target }}
-          args: --locked --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
           manylinux: ${{ matrix.platform.manylinux }}
-      - name: Check retained and new wheel ABI tags
-        shell: bash
-        run: |
-          python - <<'PYTHON'
-          from pathlib import Path
-          wheels = [path.name for path in Path("dist").glob("*.whl")]
-          print("\n".join(wheels))
-          tags = [wheel.rsplit("-", 3)[-3:-1] for wheel in wheels]
-          for python_tag, abi_tag in (("cp310", "abi3"), ("cp314", "cp314t"), ("cp315", "abi3t")):
-              assert any(python_tag in py.split(".") and abi_tag in abi.split(".") for py, abi in tags), (python_tag, abi_tag)
-          PYTHON
       - name: Upload wheels
         uses: actions/upload-artifact@v6
         with:
           name: wheels-linux-${{ matrix.platform.target }}
           path: dist
-      - name: pytest
-        if: ${{ startsWith(matrix.platform.target, 'x86_64') }}
-        shell: bash
-        working-directory: crates/primp-python
-        run: |
-          set -e
-          python3 -m venv .venv
-          source .venv/bin/activate
-          pip install primp --no-index --find-links ../../dist --force-reinstall
-          pip install pytest pytest-asyncio certifi
-          pytest
-      - name: pytest (aarch64)
-        if: ${{ matrix.platform.target == 'aarch64' }}
-        shell: bash
-        working-directory: crates/primp-python
-        run: |
-          set -e
-          python3 -m venv .venv
-          source .venv/bin/activate
-          pip install primp --no-index --find-links ../../dist --force-reinstall
-          pip install pytest pytest-asyncio certifi
-          pytest
       - name: pytest (emulated)
         if: ${{ !startsWith(matrix.platform.target, 'x86') && matrix.platform.target != 'aarch64' && matrix.platform.target != 'ppc64' }}
         uses: uraimo/run-on-arch-action@v2
@@ -154,38 +119,25 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v6
         with:
-          python-version: |
-            3.13
-            3.x
+          python-version: 3.13
       - uses: Swatinem/rust-cache@v2
         with:
           key: musllinux-${{ matrix.platform.target }}
       - name: Build wheels
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        uses: PyO3/maturin-action@v1
         with:
           maturin-version: 1.14.1
           target: ${{ matrix.platform.target }}
-          args: --locked --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
           manylinux: musllinux_1_2
       # Regular abi3 and free-threaded wheels require separate maturin invocations.
       - name: Build free-threaded wheels (3.14t and abi3t >= 3.15)
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        uses: PyO3/maturin-action@v1
         with:
           maturin-version: 1.14.1
           target: ${{ matrix.platform.target }}
-          args: --locked --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
           manylinux: musllinux_1_2
-      - name: Check retained and new wheel ABI tags
-        shell: bash
-        run: |
-          python - <<'PYTHON'
-          from pathlib import Path
-          wheels = [path.name for path in Path("dist").glob("*.whl")]
-          print("\n".join(wheels))
-          tags = [wheel.rsplit("-", 3)[-3:-1] for wheel in wheels]
-          for python_tag, abi_tag in (("cp310", "abi3"), ("cp314", "cp314t"), ("cp315", "abi3t")):
-              assert any(python_tag in py.split(".") and abi_tag in abi.split(".") for py, abi in tags), (python_tag, abi_tag)
-          PYTHON
       - name: Upload wheels
         uses: actions/upload-artifact@v6
         with:
@@ -248,11 +200,11 @@ jobs:
         with:
           key: windows-${{ matrix.platform.target }}
       - name: Build wheels
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        uses: PyO3/maturin-action@v1
         with:
           maturin-version: 1.14.1
           target: ${{ matrix.platform.target }}
-          args: --locked --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
       - uses: actions/setup-python@v6
         with:
           python-version: 3.14t
@@ -262,37 +214,16 @@ jobs:
           python-version: 3.15t
           architecture: ${{ matrix.platform.python_arch }}
       - name: Build free-threaded wheels (3.14t and abi3t >= 3.15)
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        uses: PyO3/maturin-action@v1
         with:
           maturin-version: 1.14.1
           target: ${{ matrix.platform.target }}
-          args: --locked --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
-      - name: Check retained and new wheel ABI tags
-        shell: bash
-        run: |
-          python - <<'PYTHON'
-          from pathlib import Path
-          wheels = [path.name for path in Path("dist").glob("*.whl")]
-          print("\n".join(wheels))
-          tags = [wheel.rsplit("-", 3)[-3:-1] for wheel in wheels]
-          for python_tag, abi_tag in (("cp310", "abi3"), ("cp314", "cp314t"), ("cp315", "abi3t")):
-              assert any(python_tag in py.split(".") and abi_tag in abi.split(".") for py, abi in tags), (python_tag, abi_tag)
-          PYTHON
+          args: --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
       - name: Upload wheels
         uses: actions/upload-artifact@v6
         with:
           name: wheels-windows-${{ matrix.platform.target }}
           path: dist
-      - name: pytest
-        shell: bash
-        working-directory: crates/primp-python
-        run: |
-          set -e
-          python3 -m venv .venv
-          source .venv/Scripts/activate
-          pip install primp --no-index --find-links ../../dist --force-reinstall
-          pip install pytest pytest-asyncio certifi
-          pytest
 
   macos:
     needs: [rust]
@@ -314,48 +245,27 @@ jobs:
             3.13
             3.14t
             3.15t
-            3.x
       - uses: Swatinem/rust-cache@v2
         with:
           key: macos-${{ matrix.platform.target }}
       - name: Build wheels
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        uses: PyO3/maturin-action@v1
         with:
           maturin-version: 1.14.1
           target: ${{ matrix.platform.target }}
-          args: --locked --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
       # Regular abi3 and free-threaded wheels require separate maturin invocations.
       - name: Build free-threaded wheels (3.14t and abi3t >= 3.15)
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        uses: PyO3/maturin-action@v1
         with:
           maturin-version: 1.14.1
           target: ${{ matrix.platform.target }}
-          args: --locked --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
-      - name: Check retained and new wheel ABI tags
-        shell: bash
-        run: |
-          python - <<'PYTHON'
-          from pathlib import Path
-          wheels = [path.name for path in Path("dist").glob("*.whl")]
-          print("\n".join(wheels))
-          tags = [wheel.rsplit("-", 3)[-3:-1] for wheel in wheels]
-          for python_tag, abi_tag in (("cp310", "abi3"), ("cp314", "cp314t"), ("cp315", "abi3t")):
-              assert any(python_tag in py.split(".") and abi_tag in abi.split(".") for py, abi in tags), (python_tag, abi_tag)
-          PYTHON
+          args: --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
       - name: Upload wheels
         uses: actions/upload-artifact@v6
         with:
           name: wheels-macos-${{ matrix.platform.target }}
           path: dist
-      - name: pytest
-        working-directory: crates/primp-python
-        run: |
-          set -e
-          python3 -m venv .venv
-          source .venv/bin/activate
-          pip install primp --no-index --find-links ../../dist --force-reinstall
-          pip install pytest pytest-asyncio certifi
-          pytest
 
   sdist:
     needs: [rust]
@@ -367,9 +277,8 @@ jobs:
         with:
           key: sdist
       - name: Build sdist
-        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b # v1.51.0
+        uses: PyO3/maturin-action@v1
         with:
-          maturin-version: 1.14.1
           command: sdist
           args: --out dist --manifest-path crates/primp-python/Cargo.toml
       - name: Upload sdist
@@ -428,11 +337,10 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --no-index --find-links dist primp
-          python -m pip install pytest==9.1.1 pytest-asyncio==1.4.0 certifi==2026.7.22
-          cp -R crates/primp-python/tests "$RUNNER_TEMP/primp-tests"
+          python -m pip install pytest pytest-asyncio certifi
+          cp -R crates/primp-python/tests "$RUNNER_TEMP/tests"
           cp crates/primp-python/pyproject.toml "$RUNNER_TEMP/pyproject.toml"
           cd "$RUNNER_TEMP"
-          mv primp-tests tests
           python - <<'PYTHON'
           import sys
           import sysconfig

@@ -63,17 +63,18 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: linux-${{ matrix.platform.target }}
+      # maturin picks abi3t over abi3 when targeting Python 3.15+; pinning 3.13 keeps the cp310 abi3 wheel.
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
           manylinux: ${{ matrix.platform.manylinux }}
       - name: Build free-threaded wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i python3.14t --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
           manylinux: ${{ matrix.platform.manylinux }}
       - name: Upload wheels
         uses: actions/upload-artifact@v6
@@ -146,13 +147,13 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
           manylinux: musllinux_1_2
       - name: Build free-threaded wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i python3.14t --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
           manylinux: musllinux_1_2
       - name: Upload wheels
         uses: actions/upload-artifact@v6
@@ -219,16 +220,20 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
       - uses: actions/setup-python@v6
         with:
           python-version: 3.14t
+          architecture: ${{ matrix.platform.python_arch }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.15t
           architecture: ${{ matrix.platform.python_arch }}
       - name: Build free-threaded wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i python3.14t --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
       - name: Upload wheels
         uses: actions/upload-artifact@v6
         with:
@@ -269,12 +274,12 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.13 --manifest-path crates/primp-python/Cargo.toml
       - name: Build free-threaded wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist -i python3.14t --manifest-path crates/primp-python/Cargo.toml
+          args: --release --out dist -i python3.14t python3.15t --manifest-path crates/primp-python/Cargo.toml
       - name: Upload wheels
         uses: actions/upload-artifact@v6
         with:
